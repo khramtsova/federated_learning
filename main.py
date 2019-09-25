@@ -18,7 +18,7 @@ classes = [1,2,3,4,5,6,7,8,9]
 def main():
     """
     command_line_argument_parser = argparse.ArgumentParser(
-        description="Enter the main parameters")
+        description="Enter the main.py parameters")
 
     command_line_argument_parser.add_argument(
         "input_directory",
