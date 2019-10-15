@@ -1,119 +1,101 @@
-
-import argparse
-
+import time
+import copy
+import matplotlib.pyplot as plt
 import numpy as np
 
-import matplotlib.pyplot as plt
 import torch
-
-from get_data import get_data
-from model import Net
 import torch.optim as optim
 import torch.nn as nn
 
+from data.get_data import get_dataloaders
+from model.model import Net
+from model.train import train
+from model.aggregation import FedAvg
+from data.data_distribution import Distribute
+
 batch_size = 200
 num_workers = 2
-classes = [1,2,3,4,5,6,7,8,9]
+classes = [i for i in range(10)]
 
 
 def main():
 
     # Initialize the visualization environment
     accuracy = []
-    train_loss = []
-    test_loss = []
+    loss_train_global, loss_test_global = [], []
+    loss_train_local, loss_test_local = [], []
+
+    distrib = Distribute(num_workers, len(classes))
+
+    train_data_distribution = distrib.create_non_iid_exclusive(2)
+    test_data_distribution = distrib.create_iid()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
 
-    trainloader, testloader = get_data("cifar",
-                                       batch_size=batch_size,
-                                       sub_sample=classes,
-                                       #sub_sample=torch.tensor(classes),
-                                       num_workers=num_workers)
-    # get some random training images
-    #dataiter = iter(trainloader)
-    #images, labels = dataiter.next()
-    # show images
-    #imshow(torchvision.utils.make_grid(images))
+    trainloaders, testloaders = get_dataloaders(train_data_distribution,
+                                                test_data_distribution,
+                                                "cifar",
+                                                20,
+                                                2)
 
-    print("Number of classes: ", len(classes))
-    net = Net(len(classes))
+    net = Net(10)
+
+    # copy weights
+    # w_glob = net.state_dict()
+
     net.to(device)
-    criterion = nn.CrossEntropyLoss()
+    loss_func = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
-    for epoch in range(1000):  # loop over the dataset multiple times
-        running_loss = 0.0
-        batch_loss = []
+    for epoch in range(10):
+
         net.train()
 
-        for i, data in enumerate(trainloader, 0):
+        w_local, loss_local = [], []
 
-            # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data[0].to(device), data[1].to(device)
+        # For now all of the updates are calculated sequentially
+        for trainloader in trainloaders:
+            w, loss = train(net, trainloader, loss_func, optimizer, 10, device=device)
+            w_local.append(copy.deepcopy(w))
+            loss_local.append(copy.deepcopy(loss))
 
-            # zero the parameter gradients
-            optimizer.zero_grad()
+        w_glob = FedAvg(w_local)
 
-            # forward + backward + optimize
-            outputs = net(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+        # Analog to model distribution
+        net.load_state_dict(w_glob)
+        loss_avg = sum(loss_local) / len(loss_local)
 
-            running_loss += loss.item()
-            batch_loss.append(loss.item())
+        # print loss
+        print(loss_avg, loss_local)
 
-            # print statistics
-            if i % 200 == 199:  # print every 2000 mini-batches
-                print('[%d, %5d, %d] loss: %.3f' %
-                      (epoch + 1, i + 1, epoch*(400) +i+1, running_loss / 200))
-                running_loss = 0.0
+        loss_train_global.append(loss_avg)
+        loss_train_local.append(loss_local)
 
-        # Calculate loss average
-        loss_avrg = sum(batch_loss)/len(batch_loss)
-        train_loss.append(loss_avrg)
-        #print("Train loss", loss_avrg)
-        #print('Finished Training')
-
-        correct = 0
-        total = 0
-        with torch.no_grad():
-            batch_loss = []
-            net.eval()
-            for data in testloader:
-                images, labels = data[0].to(device), data[1].to(device)
-                outputs = net(images)
-                loss = criterion(outputs, labels)
-                batch_loss.append(loss.item())
-                _, predicted = torch.max(outputs.data, 1)
-                total += batch_size
-                correct += (predicted == labels).sum().item()
-            #print("Accumulated test loss", loss_avrg)
-            #print("Accuracy", correct, "out of", total)
-
-        #print("TEST LOSS", loss_avrg)
-        test_loss.append(sum(batch_loss)/len(batch_loss))
-        accuracy.append(correct / total)
-        #print('Accuracy of the network on test images: %d %%' % (
-        #        100 * correct / total))
+    print("End of training")
 
     # ====================== PLOT ==========================
-    plt.plot(accuracy, label='Validation accuracy')
-    plt.legend(frameon=False)
-    plt.savefig("./logs/accuracy.png")
-    plt.clf()
 
-    plt.plot(train_loss, label='Train loss')
-    plt.plot(test_loss, label='Test loss')
+
+    loss_train_local = np.transpose(loss_train_local)
+    for i,l in enumerate(loss_train_local):
+        plt.plot(l, label='Agent '+i)
+    plt.plot(loss_train_local, label='Average loss')
     plt.legend(frameon=False)
     plt.savefig("./logs/loss.png")
 
     # ====================== PLOT ==========================
+
     print("Saving model to ./logs")
     adrs = "./logs/model" + "".join(map(str, classes)) +".pth"
     torch.save(net.state_dict(), adrs)
 
+    """
+    plt.plot(accuracy, label='Validation accuracy')
+    plt.legend(frameon=False)
+    plt.savefig("./logs/accuracy.png")
+    plt.clf()
+    """
 
 if __name__ == '__main__':
     main()
