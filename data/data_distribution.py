@@ -1,5 +1,7 @@
+
 import itertools
 import random
+
 from collections import Counter
 from functools import wraps
 
@@ -11,6 +13,21 @@ class Distribute:
         self.n_agent = num_agents
         self.distr = [[0 for j in range(self.n_class)] for i in range(self.n_agent)]
 
+    def get_distribution(self, name, n_labels_per_agent, sub_labels):
+        print("NAME IS ",name)
+
+        if name == "iid":
+            self.create_iid(sub_labels=sub_labels)
+        else:
+            if name == "non_iid":
+                self.create_non_iid(n_labels_per_agent, sub_labels)
+            else:
+                if name == "non_iid_excl":
+                    self.create_non_iid_exclusive(n_labels_per_agent, sub_labels)
+                else:
+                    raise("Unknown data distribution")
+        return self.distr
+
     def _create_distribution(func):
         @wraps(func)
         def wrap(arg, n_labels_per_agent=None, sub_labels=None):
@@ -19,8 +36,8 @@ class Distribute:
                 arg._change_labels(sub_labels)
             else:
                 arg._set_default_labels()
-            func(arg, n_labels_per_agent)
-            return arg.distr
+            return func(arg, n_labels_per_agent)
+            #return arg.distr
         return wrap
 
     @_create_distribution
@@ -36,8 +53,6 @@ class Distribute:
     # The labels may cross
     @_create_distribution
     def create_non_iid(self, n_labels):
-        print(self.labels)
-
         agents = [random.sample(self.labels, n_labels)for j in range(self.n_agent)]
 
         count = Counter(i for i in list(itertools.chain.from_iterable(agents)))
@@ -51,7 +66,6 @@ class Distribute:
     # The labels are unique for each client
     @_create_distribution
     def create_non_iid_exclusive(self, n_labels):
-        print("n_labels",n_labels)
         assert self.n_agent * n_labels <= len(self.labels)
         random_id = random.sample(self.labels, self.n_agent * n_labels)
 
