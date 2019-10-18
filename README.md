@@ -1,4 +1,4 @@
-# Attacks on Federated Learning 
+# Pytorch implementation of Federated Learning 
 
 ## Usage 
 Run training, using 
@@ -19,7 +19,7 @@ Three data distributions are supported:
 
 Additional argument `sub_labels` limits the distribution to a subset of labels.
 
-##Agregation methods
+## Agregation methods
 
 Only Federated Averaging is implemented for now. 
 
