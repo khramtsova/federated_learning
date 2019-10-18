@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 from random import shuffle
 
@@ -13,11 +12,7 @@ from torch.utils.data import DataLoader, SubsetRandomSampler
 #normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
 #                                  std=[0.229, 0.224, 0.225])
 
-
-# Create dataloaders based on the input distribution
-# users: []
-
-def get_dataloaders(tr_data_dstr, test_data_distr, dataset_name, batch_size, num_workers, sub_sample=None):
+def get_dataloaders(tr_data_dstr, test_data_distr, dataset_name, train_batch_size, test_batch_size, num_workers, sub_sample=None):
 
     trainset, testset = _get_data(dataset_name)
     print("Total number in trainset", len(trainset))
@@ -37,14 +32,14 @@ def get_dataloaders(tr_data_dstr, test_data_distr, dataset_name, batch_size, num
 
     for sampler in train_samplers:
         trainloaders.append(DataLoader(trainset,
-                                       batch_size=batch_size,
+                                       batch_size=train_batch_size,
                                        shuffle=False,
                                        sampler=sampler,
                                        num_workers=num_workers))
 
     for sampler in test_samplers:
         testloaders.append(DataLoader(testset,
-                                      batch_size=batch_size,
+                                      batch_size=test_batch_size,
                                       shuffle=False,
                                       sampler=sampler,
                                       num_workers=num_workers))

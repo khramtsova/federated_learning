@@ -1,7 +1,5 @@
-import time
+
 import copy
-import matplotlib.pyplot as plt
-import numpy as np
 
 import torch
 import torch.optim as optim
@@ -12,35 +10,42 @@ from model.model import Net
 from model.train import train, test
 from model.aggregation import FedAvg
 from data.data_distribution import Distribute
-
-batch_size = 32
-num_workers = 5
-classes = [i for i in range(10)]
-rounds = 2
-# For non-iid
-n_class_per_user = 2
+from src.log_saver import LogSaver
+from src.options import args_parser
 
 
 def main():
 
-    # Initialize the visualization environment
+    args = args_parser()
+
+    logs = LogSaver(args)
 
     acc_test, loss_test, acc_train, loss_train = [], [], [], []
-    avrg = lambda a: sum(a)/len(a)
 
-    distrib = Distribute(num_workers, len(classes))
+    # ToDo change this
+    classes = [i for i in range(args.num_classes)]
 
-    train_data_distribution = distrib.create_iid()
-    test_data_distribution = distrib.create_iid()
+    distrib = Distribute(args.num_workers, len(classes))
+
+    train_data_distribution = copy.deepcopy(distrib.get_distribution(args.dstr_Train,
+                                                                     args.n_labels_per_agent_Train,
+                                                                     args.sub_labels_Train))
+
+    test_data_distribution = copy.deepcopy(distrib.get_distribution(args.dstr_Test,
+                                                       args.n_labels_per_agent_Test,
+                                                       args.sub_labels_Test))
+
+    print(train_data_distribution, "\n\n TEST DISTRIBUTION", test_data_distribution)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
 
     trainloaders, testloaders = get_dataloaders(train_data_distribution,
                                                 test_data_distribution,
-                                                "cifar",
-                                                batch_size,
-                                                num_workers)
+                                                args.dataset,
+                                                args.train_bs,
+                                                args.test_bs,
+                                                args.num_workers)
 
     net = Net(10)
 
@@ -49,9 +54,9 @@ def main():
 
     net.to(device)
     loss_func = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum)
 
-    for rnd in range(rounds):
+    for rnd in range(args.rounds):
 
         net.train()
 
@@ -59,7 +64,7 @@ def main():
 
         # For now all of the updates are calculated sequentially
         for trainloader in trainloaders:
-            w, loss, acc = train(net, trainloader, loss_func, optimizer, 2, device=device)
+            w, loss, acc = train(net, trainloader, loss_func, optimizer, args.local_ep, device=device)
 
             w_local.append(copy.deepcopy(w))
             loss_train.append(copy.deepcopy(loss))
@@ -77,61 +82,16 @@ def main():
             acc_test.append(copy.deepcopy(acc))
             loss_test.append(copy.deepcopy(loss))
 
+        logs.add_row(acc_train, loss_train, acc_test, loss_test)
+
         print("Round", rnd)
     print("End of training")
 
-    acc_train = np.reshape(acc_train, [rounds, num_workers])
-    loss_train = np.reshape(loss_train, [rounds, num_workers])
-    acc_test = np.reshape(acc_test, [rounds, num_workers])
-    loss_test = np.reshape(loss_test, [rounds, num_workers])
+    logs.plot(loss_train,loss_test, acc_train, acc_test)
+    print("Plots are created\n", acc_train, "\n\n", loss_train)
+    logs.save_model(net)
 
-    print(acc_train, "\n\n", loss_train)
-
-    # ====================== PLOT ==========================
-
-    for i,l in enumerate(loss_train.T):
-        plt.plot(l, label='Agent ' + str(i))
-    #plt.plot(loss_train_local, label='Average loss')
-    plt.legend(frameon=False)
-    plt.title("Train loss")
-    plt.savefig("./logs/loss_train.png")
-    plt.clf()
-
-    for i,l in enumerate(loss_test.T):
-        plt.plot(l, label='Agent ' + str(i))
-    #plt.plot(loss_train_local, label='Average loss')
-    plt.legend(frameon=False)
-    plt.title("Test loss")
-    plt.savefig("./logs/loss_test.png")
-    plt.clf()
-
-    for i,l in enumerate(acc_train.T):
-        plt.plot(l, label='Agent '+ str(i))
-    plt.legend(frameon=False)
-    plt.title("Train accuracy")
-    plt.savefig("./logs/acc_train.png")
-    plt.clf()
-
-    for i,l in enumerate(acc_test.T):
-        plt.plot(l, label='Agent '+ str(i))
-    #plt.plot(loss_train_local, label='Average loss')
-    plt.legend(frameon=False)
-    plt.title("Test accuracy")
-    plt.savefig("./logs/acc_test.png")
-    plt.clf()
-
-    # ====================== PLOT ==========================
-
-    print("Saving model to ./logs")
-    adrs = "./logs/model" + "".join(map(str, classes)) +".pth"
-    torch.save(net.state_dict(), adrs)
-
-    """
-    plt.plot(accuracy, label='Validation accuracy')
-    plt.legend(frameon=False)
-    plt.savefig("./logs/accuracy.png")
-    plt.clf()
-    """
 
 if __name__ == '__main__':
     main()
+    #LogSaver("sd")
