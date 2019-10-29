@@ -30,7 +30,7 @@ def train(net, loader, loss_func, optimizer, local_ep, device="cpu"):
             batch_loss.append(loss.item())
 
         epoch_loss.append(sum(batch_loss) / len(batch_loss))
-        epoch_acc.append(correct.float()*100./len(loader.dataset))
+        epoch_acc.append(correct.float()*100./len(loader.sampler))
 
     # Calculate loss average
     return net.state_dict(), avrg(epoch_loss), avrg(epoch_acc)
@@ -53,5 +53,5 @@ def test(net, loader, loss_func, device="cpu"):
         y_pred = log_probs.data.max(1, keepdim=True)[1]
         correct += y_pred.eq(labels.data.view_as(y_pred)).sum()
 
-    return avrg(test_loss), correct.float()*100./len(loader.dataset)
+    return avrg(test_loss), correct.float()*100./len(loader.sampler)
 
