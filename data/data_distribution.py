@@ -83,4 +83,4 @@ class Distribute:
 if __name__ == "__main__":
 
     distribution = Distribute(2, 10)
-    distribution.create_iid(sub_labels=[1, 2, 3, 4, 5])
+    print(distribution.get_distribution("non_iid", 2, sub_labels=[1, 2, 3]))

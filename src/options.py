@@ -10,13 +10,13 @@ def args_parser():
                                                                       "can be: 'iid', 'non_iid' or 'non_iid_excl'")
     parser.add_argument('--n_labels_per_agent_Train', type=int, default=2,
                         help="Each agent have only n labels in it's training set")
-    parser.add_argument('--sub_labels_Train', type=list, default=None,
+    parser.add_argument('--sub_labels_Train', nargs='+', type=int, default=None,
                         help="Take into account only part of the labels")
     parser.add_argument('--dstr_Test', type=str, default="iid", help="Distribution of the test data"
                                                                      "can be: 'iid', 'non_iid' or 'non_iid_excl'")
     parser.add_argument('--n_labels_per_agent_Test', type=int, default=None,
                         help="Each agent have only n labels in it's test set")
-    parser.add_argument('--sub_labels_Test', type=list, default=None,
+    parser.add_argument('--sub_labels_Test', nargs='+', type=int, default=None,
                         help="Take into account only part of the labels")
 
     # Federated training
