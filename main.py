@@ -61,16 +61,19 @@ def main():
         net.train()
 
         w_local = []
+        n = []
 
         # For now all of the updates are calculated sequentially
         for trainloader in trainloaders:
+
             w, loss, acc = train(net, trainloader, loss_func, optimizer, args.local_ep, device=device)
 
             w_local.append(copy.deepcopy(w))
+            n.append(len(trainloader.sampler))
             loss_train.append(copy.deepcopy(loss))
             acc_train.append(copy.deepcopy(acc))
 
-        w_glob = FedAvg(w_local)
+        w_glob = FedAvg(w_local, n)
 
         # Analog to model distribution
         net.load_state_dict(w_glob)
@@ -82,6 +85,7 @@ def main():
             acc_test.append(copy.deepcopy(acc))
             loss_test.append(copy.deepcopy(loss))
 
+        print(acc_train, loss_train, acc_test, loss_test)
         logs.add_row(acc_train, loss_train, acc_test, loss_test)
 
         print("Round", rnd)
