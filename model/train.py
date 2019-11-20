@@ -1,23 +1,33 @@
+import torch
+import torch.optim as optim
 
-def train(net, loader, loss_func, optimizer, local_ep, device="cpu"):
 
+def train(worker, net_in, loader, loss_func, local_ep, batch_size ,device="cpu"):
+
+    net = net_in.copy()
+
+    # ToDo add momentum
+    optimizer = optim.SGD(net.parameters(), lr=0.001)#, momentum=args.momentum)
+    # ===== Federated part =====
+    # Send the model to the right location
+    net.send(worker)
     net.train()
-    # train and update
+
     epoch_loss = []
     epoch_acc = []
+
     avrg = lambda a: sum(a)/len(a)
 
     for iter in range(local_ep):
-        batch_loss = []
+
+        batch_loss = []# torch.Tensor(len(loader)).send(worker)
         correct = 0
 
-        for images, labels in loader:
-
+        for indx, (images, labels) in enumerate(loader):
             images, labels = images.to(device), labels.to(device)
 
             # zero the parameter gradients
             optimizer.zero_grad()
-            # net.zero_grad()
 
             log_probs = net(images)
             loss = loss_func(log_probs, labels)
@@ -27,31 +37,44 @@ def train(net, loader, loss_func, optimizer, local_ep, device="cpu"):
 
             loss.backward()
             optimizer.step()
+            loss = loss.get()
             batch_loss.append(loss.item())
 
-        epoch_loss.append(sum(batch_loss) / len(batch_loss))
-        epoch_acc.append(correct.float()*100./len(loader.sampler))
+        epoch_loss.append(avrg(batch_loss))
+        #print("Loss after epoch", iter, "is", avrg(batch_loss))
+
+        # Get the accuracy back, specify that is float and transform from Tensor to value
+        correct_value = correct.get().float().item()
+        epoch_acc.append(correct_value*100./(len(loader)*batch_size))
 
     # Calculate loss average
-    return net.state_dict(), avrg(epoch_loss), avrg(epoch_acc)
+
+    return net.get(), avrg(epoch_loss), avrg(epoch_acc)
 
 
-def test(net, loader, loss_func, device="cpu"):
+def test(worker, net_in, loader, loss_func, batch_size, device="cpu"):
+    net = net_in.copy()
     # testing
+    net.send(worker)
     net.eval()
     test_loss = []
     correct = 0
     avrg = lambda a: sum(a)/len(a)
+    with torch.no_grad():
+        for idx, (data, labels) in enumerate(loader):
+            data, labels = data.to(device), labels.to(device)
 
-    for idx, (data, labels) in enumerate(loader):
-        data, labels = data.to(device), labels.to(device)
+            log_probs = net(data)
+            loss = loss_func(log_probs, labels)
 
-        log_probs = net(data)
-        loss = loss_func(log_probs, labels)
-        test_loss.append(loss.item())
+            loss = loss.get()
+            test_loss.append(loss.item())
 
-        y_pred = log_probs.data.max(1, keepdim=True)[1]
-        correct += y_pred.eq(labels.data.view_as(y_pred)).sum()
+            y_pred = log_probs.data.max(1, keepdim=True)[1]
+            correct += y_pred.eq(labels.data.view_as(y_pred)).sum()
 
-    return avrg(test_loss), correct.float()*100./len(loader.sampler)
+    correct_value = correct.get().float().item()
+    accuracy = correct_value*100./(len(loader)*batch_size)
+
+    return avrg(test_loss), accuracy
 

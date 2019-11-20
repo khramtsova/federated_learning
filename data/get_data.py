@@ -1,6 +1,8 @@
 import numpy as np
-
 from random import shuffle
+
+import torch
+import syft as sy
 
 from torchvision.datasets import MNIST
 from torchvision.datasets import CIFAR10
@@ -14,37 +16,56 @@ from torch.utils.data import DataLoader, SubsetRandomSampler
 
 def get_dataloaders(tr_data_dstr, test_data_distr, dataset_name, train_batch_size, test_batch_size, num_workers, sub_sample=None):
 
+    # Create Virtual Workers
+    hook = sy.TorchHook(torch)
+    workers = []
+    for idx in range(num_workers):
+        workers.append(sy.VirtualWorker(hook, id="worker" + str(idx)))
+
+    # Load the dataset
     trainset, testset = _get_data(dataset_name)
     print("Total number in trainset", len(trainset))
 
     n_classes = max(len(set(trainset.targets)), len(set(testset.targets)))
     _check_users_validity(tr_data_dstr, n_classes)
 
-    train_samplers = _create_samplers(trainset, tr_data_dstr)
-    test_samplers = _create_samplers(testset, test_data_distr)
+    train_samplers = _create_samplers(trainset, tr_data_dstr)[:10]
+    test_samplers = _create_samplers(testset, test_data_distr)[:10]
 
     print("The number of train samples per agent ",
           [len(s) for i, s in enumerate(train_samplers)])
     print("The number of test samples per agent ",
           [len(s) for i, s in enumerate(test_samplers)])
 
-    trainloaders, testloaders = [], []
+    fed_dataset_train = _distribute_among_workers(train_samplers, trainset, workers)
+    fed_dataset_test = _distribute_among_workers(test_samplers, testset, workers)
 
-    for sampler in train_samplers:
-        trainloaders.append(DataLoader(trainset,
-                                       batch_size=train_batch_size,
-                                       shuffle=False,
-                                       sampler=sampler,
-                                       num_workers=num_workers))
+    print(fed_dataset_train,"\n", fed_dataset_test)
+    fed_loader_train = sy.FederatedDataLoader(fed_dataset_train, batch_size=train_batch_size)
+    fed_loader_test = sy.FederatedDataLoader(fed_dataset_test, batch_size=test_batch_size)
 
-    for sampler in test_samplers:
-        testloaders.append(DataLoader(testset,
-                                      batch_size=test_batch_size,
-                                      shuffle=False,
-                                      sampler=sampler,
-                                      num_workers=num_workers))
+    return fed_loader_train, fed_loader_test, workers
 
-    return trainloaders, testloaders
+
+def _distribute_among_workers(samplers, dataset, workers):
+
+    datasets = []
+
+    # Each worker have it's own sampler; len(samplers)== len(workers)
+    for idx, sampler in enumerate(samplers):
+
+        loader = DataLoader(dataset,
+                            batch_size=len(sampler),
+                            shuffle=False,
+                            sampler=sampler)
+
+        # Loader always contains only one batch (because batch_size=len(sampler))
+        for batch in loader:
+            data = batch[0].send(workers[idx].id)
+            targets = batch[1].send(workers[idx].id)
+            datasets.append(sy.BaseDataset(data, targets))
+
+    return sy.FederatedDataset(datasets)
 
 
 def _create_samplers(data, users):
@@ -69,6 +90,8 @@ def _create_samplers(data, users):
             prev = prev+number
 
     for indeces in user_inds:
+
+        #user_samplers.append(SubsetRandomSampler(indeces[:20]))
         user_samplers.append(SubsetRandomSampler(indeces))
 
     return user_samplers
