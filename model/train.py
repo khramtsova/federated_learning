@@ -1,13 +1,19 @@
 import torch
-import torch.optim as optim
 
 
-def train(worker, net_in, loader, loss_func, local_ep, batch_size ,device="cpu"):
+def train(worker, net_in, loader, loss_func, local_ep, batch_size, optim="Adam",device="cpu"):
 
     net = net_in.copy()
 
-    # ToDo add momentum
-    optimizer = optim.SGD(net.parameters(), lr=0.001)#, momentum=args.momentum)
+    if optim == "Adam":
+        optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+    else:
+        if optim == "SGD":
+            # ToDo add momentum
+            optimizer = optim.SGD(net.parameters(), lr=0.001)#, momentum=args.momentum)
+        else:
+            raise Exception("Unknown optimizer")
+
     # ===== Federated part =====
     # Send the model to the right location
     net.send(worker)

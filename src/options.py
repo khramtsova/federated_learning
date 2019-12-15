@@ -6,13 +6,13 @@ def args_parser():
     parser = argparse.ArgumentParser()
 
     # Data distribution
-    parser.add_argument('--dstr_Train', type=str, default="iid", help="Distribution of the training data"
+    parser.add_argument('--dstr_Train', type=str, default="iid", help="Distribution of the training image_data"
                                                                       "can be: 'iid', 'non_iid' or 'non_iid_excl'")
     parser.add_argument('--n_labels_per_agent_Train', type=int, default=2,
                         help="Each agent have only n labels in it's training set")
     parser.add_argument('--sub_labels_Train', nargs='+', type=int, default=None,
                         help="Take into account only part of the labels")
-    parser.add_argument('--dstr_Test', type=str, default="iid", help="Distribution of the test data"
+    parser.add_argument('--dstr_Test', type=str, default="iid", help="Distribution of the test image_data"
                                                                      "can be: 'iid', 'non_iid' or 'non_iid_excl'")
     parser.add_argument('--n_labels_per_agent_Test', type=int, default=None,
                         help="Each agent have only n labels in it's test set")
@@ -30,6 +30,7 @@ def args_parser():
 
     #Other arguments
     parser.add_argument('--dataset', type=str, default='cifar', help="name of dataset")
+    parser.add_argument('--data_folder', type=str, default='/', help="the location of the dataset")
     parser.add_argument('--num_classes', type=int, default=10, help="number of classes")
     parser.add_argument('--num_channels', type=int, default=3, help="number of channels of imges")
     parser.add_argument('--log_folder', type=str, default="/logs/", help='Log folder from the root of the project')

@@ -22,7 +22,9 @@ class LogSaver:
         random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
 
         # Create a new folder for every experiment
-        self.folder = str(get_project_root()) + args.log_folder + random_str + "/"
+        #self.folder = str(get_project_root()) + args.log_folder + random_str + "/")
+        self.folder = str(args.log_folder + random_str + "/")
+
         os.mkdir(self.folder)
 
         # Write summary to a file
@@ -49,29 +51,29 @@ class LogSaver:
 
         # ====================== PLOT ==========================
 
-        for i,l in enumerate(loss_train.T):
+        for i, l in enumerate(loss_train.T):
             plt.plot(l, label='Agent ' + str(i))
         plt.legend(frameon=False)
         plt.title("Train loss")
         plt.savefig(self.folder + "loss_train.png")
         plt.clf()
 
-        for i,l in enumerate(loss_test.T):
+        for i, l in enumerate(loss_test.T):
             plt.plot(l, label='Agent ' + str(i))
         plt.legend(frameon=False)
         plt.title("Test loss")
         plt.savefig(self.folder + "loss_test.png")
         plt.clf()
 
-        for i,l in enumerate(acc_train.T):
-            plt.plot(l, label='Agent '+ str(i))
+        for i, l in enumerate(acc_train.T):
+            plt.plot(l, label='Agent ' + str(i))
         plt.legend(frameon=False)
         plt.title("Train accuracy")
         plt.savefig(self.folder+"acc_train.png")
         plt.clf()
 
-        for i,l in enumerate(acc_test.T):
-            plt.plot(l, label='Agent '+ str(i))
+        for i, l in enumerate(acc_test.T):
+            plt.plot(l, label='Agent ' + str(i))
         plt.legend(frameon=False)
         plt.title("Test accuracy")
         plt.savefig(self.folder+ "acc_test.png")
