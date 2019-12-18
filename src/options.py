@@ -21,7 +21,7 @@ def args_parser():
 
     # Federated training
     parser.add_argument('--rounds', type=int, default=3, help="rounds of training")
-    parser.add_argument('--num_workers', type=int, default=5, help="number of users")
+    parser.add_argument('--num_workers', type=int, default=4, help="number of users")
     parser.add_argument('--local_ep', type=int, default=5, help="the number of local epochs")
     parser.add_argument('--train_bs', type=int, default=32, help="local batch size")
     parser.add_argument('--test_bs', type=int, default=128, help="test batch size")

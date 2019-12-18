@@ -6,7 +6,10 @@ import syft as sy
 from url_data import data_distribution
 
 
-def get_dataloaders(file, num_workers=4,
+def get_dataloaders(file, logs,
+                    tr_data_dstr,
+                    test_data_distr,
+                    num_workers=4,
                     train_batch_size=16,
                     test_batch_size=16):
 
@@ -18,11 +21,19 @@ def get_dataloaders(file, num_workers=4,
         workers.append(sy.VirtualWorker(hook, id="worker" + str(idx)))
 
     # Set aside the test dataset, which will be the same for all the workers
-    train_data, test_data = _train_validation_split(dataset, 20)
+    train_data, test_data = _train_validation_split(dataset, 10)
 
-    # For each worker - create a subframe
-    train_data_subsets = data_distribution.split_iid(train_data, num_workers)
-    test_data_subsets = data_distribution.split_identical(test_data, num_workers)
+    # If by_attack - ignore the number of workers
+    if tr_data_dstr == "by_attack" or test_data_distr == "by_attack":
+        num_workers = 4
+
+    distr = data_distribution.Distribute(num_workers)
+
+    train_data_subsets, train_distribution = distr.perform_split(tr_data_dstr, train_data)
+    test_data_subsets, test_distribution = distr.perform_split(test_data_distr, test_data)
+
+    logs.plot_distribution(train_distribution, "train_distribution")
+    logs.plot_distribution(test_distribution, "test_distribution")
 
     fed_dataset_train = _distribute_among_workers(train_data_subsets, workers)
     fed_dataset_test = _distribute_among_workers(test_data_subsets, workers)
@@ -70,10 +81,12 @@ def _train_validation_split(frame, percent):
 
 # Separate target into a separate column and make it binary. Return Tensors
 def _data_target_split(dataset):
+
     target = dataset.pop("URL_Type_obf_Type")
     how_replace = dict(zip(["Defacement", "benign", "malware", "phishing", "spam"],
                            [1, 0, 1, 1, 1]))
     target = target.map(how_replace)
     x = torch.from_numpy(dataset.values).float()
     y = torch.from_numpy(target.values)  # .long()
+
     return x, y

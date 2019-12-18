@@ -6,7 +6,6 @@ def FedAvg(w, n):
     assert len(w) == len(n)
     N = sum(n)
     n = [x/N for x in n]
-    print(n)
     w_avg = copy.deepcopy(w[0])
     for j in w_avg.keys():
         w_avg[j] *= n[0]

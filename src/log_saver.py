@@ -1,6 +1,7 @@
 
 import os
 import csv
+import math
 import random
 import string
 
@@ -44,41 +45,80 @@ class LogSaver:
 
     def plot(self, loss_train, loss_test, acc_train, acc_test):
 
-        acc_train = np.reshape(acc_train, [self.args.rounds, self.args.num_workers])
+        acc_train = np.reshape(acc_train, [self.args.rounds,  self.args.num_workers])
         loss_train = np.reshape(loss_train, [self.args.rounds, self.args.num_workers])
         acc_test = np.reshape(acc_test, [self.args.rounds, self.args.num_workers])
         loss_test = np.reshape(loss_test, [self.args.rounds, self.args.num_workers])
 
         # ====================== PLOT ==========================
 
+        fig, axs = plt.subplots(2, 2, figsize=(20, 15))
+
         for i, l in enumerate(loss_train.T):
-            plt.plot(l, label='Agent ' + str(i))
-        plt.legend(frameon=False)
-        plt.title("Train loss")
-        plt.savefig(self.folder + "loss_train.png")
-        plt.clf()
+            axs[0,0].plot(l, label='Agent ' + str(i))
+        axs[0,0].legend(frameon=False)
+        axs[0,0].set_title("Train loss")
 
         for i, l in enumerate(loss_test.T):
-            plt.plot(l, label='Agent ' + str(i))
-        plt.legend(frameon=False)
-        plt.title("Test loss")
-        plt.savefig(self.folder + "loss_test.png")
-        plt.clf()
+            axs[0, 1].plot(l, label='Agent ' + str(i))
+        axs[0,1].legend(frameon=False)
+        axs[0,1].set_title("Test loss")
 
         for i, l in enumerate(acc_train.T):
-            plt.plot(l, label='Agent ' + str(i))
-        plt.legend(frameon=False)
-        plt.title("Train accuracy")
-        plt.savefig(self.folder+"acc_train.png")
-        plt.clf()
+            axs[1,0].plot(l, label='Agent ' + str(i))
+        axs[1,0].legend(frameon=False)
+        axs[1,0].set_title("Train accuracy")
 
         for i, l in enumerate(acc_test.T):
-            plt.plot(l, label='Agent ' + str(i))
-        plt.legend(frameon=False)
-        plt.title("Test accuracy")
-        plt.savefig(self.folder+ "acc_test.png")
+            axs[1,1].plot(l, label='Agent ' + str(i))
+        axs[1,1].legend(frameon=False)
+        axs[1,1].set_title("Test accuracy")
+
+        fig.suptitle("Results", fontsize=16)
+        plt.savefig(self.folder + "results.png")
         plt.clf()
+
         # ====================== PLOT ==========================
+
+    # Distribution: dict(pd.Series);
+    # len(dict) == num_workers
+    def plot_distribution(self, distribution, filename):
+        # If the distribution is different for each worker,
+        # The class distribution is a dictionary of Series
+        if isinstance(distribution, dict):
+            max_columns = 3
+            max_rows = math.ceil(self.args.num_workers / max_columns)
+            fig, axs = plt.subplots(max_rows, max_columns, figsize=(22,10))
+            for i in range(max_rows):
+                for j in range(max_columns):
+                    worker_id = i * max_columns + j
+                    if worker_id != self.args.num_workers:
+                        axs[i, j].bar("benign", distribution[worker_id]["benign"])
+                        distribution[worker_id].drop(labels=["benign"], inplace=True)
+                        malicious = sum(distribution[worker_id])
+                        axs[i, j].bar(distribution[worker_id].index, distribution[worker_id].values)
+                        axs[i, j].bar("Malicious", malicious)
+                    else:
+                        fig.suptitle("Data distribution", fontsize=16)
+                        plt.savefig(self.folder + filename + ".png")
+                        plt.clf()
+                        break
+
+        # Otherwise, all the users have the same label distribution and
+        # we only make one plot
+        # => The class distribution is one Series
+        else:
+            fig, ax = plt.subplots(figsize=(10, 5))
+
+            ax.bar("benign", distribution["benign"])
+            distribution.drop(labels=["benign"], inplace=True)
+            malicious = sum(distribution)
+            ax.bar(distribution.index, distribution.values)
+            ax.bar("Malicious", malicious)
+            ax.set_title("Data distribution",  fontsize=16, fontweight='bold')
+            plt.savefig(self.folder + filename +".png")
+            plt.clf()
+        return True
 
     def save_model(self, net):
         print("Saving model weights ")

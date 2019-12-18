@@ -22,7 +22,11 @@ def main():
     args = args_parser()
     logs = LogSaver(args)
 
-    fed_trainloaders, fed_testloaders, workers = get_dataloaders(args.data_folder, args.num_workers,
+    fed_trainloaders, fed_testloaders, workers = get_dataloaders(args.data_folder,
+                                                                 logs,
+                                                                 args.dstr_Train,
+                                                                 args.dstr_Test,
+                                                                 args.num_workers,
                                                                  args.train_bs, args.test_bs)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -38,6 +42,8 @@ def main():
         net1 = LinearModel(inputDim, outputDim)
         net1.to(device)
         logs.args.num_workers += 1
+
+
     # copy weights
     # w_glob = net.state_dict()
 
@@ -96,6 +102,8 @@ def main():
     print(acc_train, "\n\n", type(acc_train))
     print("Plots are created\n", acc_train, "\n\n", loss_train)
 
+    if args.dstr_Train == "iid":
+        logs.args.num_workers += 1
     logs.plot(loss_train, loss_test, np.array(acc_train), np.array(acc_test))
     logs.save_model(net)
 
