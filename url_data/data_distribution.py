@@ -47,6 +47,26 @@ class Distribute:
                 subframe = subframe.drop(temp.index)
         return workers, distribution
 
+    # 1. Dataset is separeted in iid
+    # input - frame
+    # return - workers[1,2,3,4]:[Dataframe]
+    def _split_iid_balanced(self, frame, workers, distribution):
+
+        label_count = frame.groupby("URL_Type_obf_Type")["Querylength"].count()
+        distribution = (label_count / self.n_workers).astype(int)
+
+        #for worker_id in range(self.n_workers):
+        #    distribution[worker_id] = amount
+
+        # For each type of the attack
+        for name, subframe in frame.groupby("URL_Type_obf_Type"):
+            for worker_id in range(self.n_workers):
+                # Random sample of data
+                temp = subframe.sample(n=distribution[name])
+                workers[worker_id] = workers[worker_id].append(temp)
+                subframe = subframe.drop(temp.index)
+        return workers, distribution
+
     # 2. Dataset is split by attack, benign is heavily undersampled
     # input - frame
     # return - workers[1,2,3,4]:[Dataframe]

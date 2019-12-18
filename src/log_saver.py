@@ -47,8 +47,11 @@ class LogSaver:
 
         acc_train = np.reshape(acc_train, [self.args.rounds,  self.args.num_workers])
         loss_train = np.reshape(loss_train, [self.args.rounds, self.args.num_workers])
-        acc_test = np.reshape(acc_test, [self.args.rounds, self.args.num_workers])
-        loss_test = np.reshape(loss_test, [self.args.rounds, self.args.num_workers])
+        #acc_test = np.reshape(acc_test, [self.args.rounds, self.args.num_workers])
+        #loss_test = np.reshape(loss_test, [self.args.rounds, self.args.num_workers])
+
+        acc_test = np.reshape(acc_test, [self.args.rounds, -1])
+        loss_test = np.reshape(loss_test, [self.args.rounds, -1])
 
         # ====================== PLOT ==========================
 

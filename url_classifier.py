@@ -29,13 +29,18 @@ def main():
                                                                  args.num_workers,
                                                                  args.train_bs, args.test_bs)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        torch.set_default_tensor_type(torch.cuda.FloatTensor)
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
 
     # ToDo: inefficient batch extraction
     batches = extract_batches_per_worker(fed_trainloaders)
     batches_test = extract_batches_per_worker(fed_testloaders)
 
     net = LinearModel(inputDim, outputDim)
+    net.to(device)
 
     # If iid - compare to a centralized
     if args.dstr_Train == "iid":
@@ -47,7 +52,7 @@ def main():
     # copy weights
     # w_glob = net.state_dict()
 
-    net.to(device)
+
     loss_func = nn.CrossEntropyLoss()
 
     acc_test, loss_test, acc_train, loss_train = [], [], [], []
@@ -72,13 +77,22 @@ def main():
         net = federated_avg(w_local)
 
         # Perform tests after global update
-        for worker in workers:
+        # If the test subset is the same for everyone - perform only one test
+        if args.dstr_Test == "same":
             testloader = batches_test[worker]
 
             loss, acc = test(worker, net, testloader, loss_func, args.test_bs, device=device)
 
             acc_test.append(copy.deepcopy(acc))
             loss_test.append(copy.deepcopy(loss))
+        else:
+            for worker in workers:
+                testloader = batches_test[worker]
+
+                loss, acc = test(worker, net, testloader, loss_func, args.test_bs, device=device)
+
+                acc_test.append(copy.deepcopy(acc))
+                loss_test.append(copy.deepcopy(loss))
 
         # If iid - take last worker and perform a centralized training
         if args.dstr_Train == "iid":
@@ -102,8 +116,6 @@ def main():
     print(acc_train, "\n\n", type(acc_train))
     print("Plots are created\n", acc_train, "\n\n", loss_train)
 
-    if args.dstr_Train == "iid":
-        logs.args.num_workers += 1
     logs.plot(loss_train, loss_test, np.array(acc_train), np.array(acc_test))
     logs.save_model(net)
 
