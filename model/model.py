@@ -54,6 +54,7 @@ class CNNMnist(nn.Module):
 class LinearModel(nn.Module):
     def __init__(self, input_dim, n_classes):
         super(LinearModel, self).__init__()
+        self.input_dim = input_dim
 
         self.fc1 = nn.Linear(input_dim, 64)
         #self.bn1 = nn.BatchNorm1d(64)
@@ -66,7 +67,7 @@ class LinearModel(nn.Module):
         #x = F.relu(self.bn1(self.fc1(x)))
         #x = F.relu(self.bn2(self.fc2(x)))
         #x = self.fc3(x)
-        x = x.view(-1, 72)
+        x = x.view(-1, self.input_dim)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.dropout(x)
