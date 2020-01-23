@@ -13,7 +13,8 @@ def get_dataloaders(file, logs,
                     train_batch_size=16,
                     test_batch_size=16):
 
-    dataset = pd.read_csv(file, low_memory=False, na_values='NaN')
+    dataset = pd.read_csv(file, low_memory=False, squeeze=True)
+
     # Create Virtual Workers
     hook = sy.TorchHook(torch)
     workers = []
@@ -61,15 +62,21 @@ def _distribute_among_workers(dataset, workers):
 # Take equal amount of all the features apart
 # All the workers have a same validation subset
 def _train_validation_split(frame, percent):
-    label_count = frame.groupby("URL_Type_obf_Type")["Querylength"].count()
+    label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
     # amount = (label_count/4).astype(int)
     amount = (label_count * percent / 100).astype(int)
-    # workers = dict.fromkeys([0,1,2,3], pd.DataFrame())
+    for key in amount.keys():
+        amount[key] = min(amount)
+    amount["benign"] = 1
 
+    # workers = dict.fromkeys([0,1,2,3], pd.DataFrame())
     # For each type of the attack
     test_data = pd.DataFrame()
     for name, subframe in frame.groupby("URL_Type_obf_Type"):
         test_data = test_data.append(subframe.sample(n=amount[name]))
+        #test_data = test_data.append(subframe.sample(n=amount[name]))
+
+    #test_data = test_data.drop(test_data[test_data["URL_Type_obf_Type"] == "benign"].index)
     frame = frame.drop(test_data.index)
     # for worker_id in range(4):
     # Random sample of data
@@ -83,7 +90,7 @@ def _train_validation_split(frame, percent):
 def _data_target_split(dataset):
 
     target = dataset.pop("URL_Type_obf_Type")
-    how_replace = dict(zip(["Defacement", "benign", "malware", "phishing", "spam"],
+    how_replace = dict(zip(["defacement", "benign", "malware", "phishing", "spam"],
                            [1, 0, 1, 1, 1]))
     target = target.map(how_replace)
     x = torch.from_numpy(dataset.values).float()

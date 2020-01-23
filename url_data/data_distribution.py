@@ -32,7 +32,7 @@ class Distribute:
     # return - workers[1,2,3,4]:[Dataframe]
     def _split_iid(self, frame, workers, distribution):
 
-        label_count = frame.groupby("URL_Type_obf_Type")["Querylength"].count()
+        label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
         distribution = (label_count / self.n_workers).astype(int)
 
         #for worker_id in range(self.n_workers):
@@ -52,7 +52,7 @@ class Distribute:
     # return - workers[1,2,3,4]:[Dataframe]
     def _split_iid_balanced(self, frame, workers, distribution):
 
-        label_count = frame.groupby("URL_Type_obf_Type")["Querylength"].count()
+        label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
         distribution = (label_count / self.n_workers).astype(int)
 
         #for worker_id in range(self.n_workers):
@@ -72,7 +72,7 @@ class Distribute:
     # return - workers[1,2,3,4]:[Dataframe]
     def _split_by_attack(self, frame, workers, distribution):
 
-        label_count = frame.groupby("URL_Type_obf_Type")["Querylength"].count()
+        label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
         amount = (label_count["benign"] / 4).astype(int)
 
         benign = frame[frame["URL_Type_obf_Type"] == "benign"]
@@ -99,7 +99,7 @@ class Distribute:
     def _split_identical(self, frame, workers):
         for worker_id in range(self.n_workers):
              workers[worker_id] = copy.copy(frame)
-        distribution = frame.groupby("URL_Type_obf_Type")["Querylength"].count()
+        distribution = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
         return workers, distribution
 
 
@@ -108,7 +108,7 @@ class Distribute:
 # input - frame
 # return - workers[1,2,3,4]:[Dataframe]
 def split_iid(frame, n_workers, logs):
-    label_count = frame.groupby("URL_Type_obf_Type")["Querylength"].count()
+    label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
     amount = (label_count / n_workers).astype(int)
     print("Each worker get", amount)
     # workers = dict.fromkeys([0,1,2,3], pd.DataFrame())
@@ -130,7 +130,7 @@ def split_iid(frame, n_workers, logs):
 # input - frame
 # return - workers[1,2,3,4]:[Dataframe]
 def split_by_attack(frame, logs):
-    label_count = frame.groupby("URL_Type_obf_Type")["Querylength"].count()
+    label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
     print("HERE",label_count)
     amount = (label_count["benign"] / 4).astype(int)
 
