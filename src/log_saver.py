@@ -17,7 +17,7 @@ from src.utils import get_project_root
 
 class LogSaver:
 
-    def __init__(self, args):
+    def __init__(self, args, logsubfolder=None):
 
         self.args = args
 
@@ -25,8 +25,11 @@ class LogSaver:
         random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
 
         # Create a new folder for every experiment
-        #self.folder = str(get_project_root()) + args.log_folder + random_str + "/")
-        self.folder = str(args.log_folder + random_str + "/")
+        if logsubfolder:
+            self.folder = str(args.log_folder + "/" + logsubfolder + "/")
+
+        else:
+            self.folder = str(args.log_folder + random_str + "/")
 
         os.mkdir(self.folder)
 
