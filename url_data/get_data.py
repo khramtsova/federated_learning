@@ -31,11 +31,12 @@ def get_dataloaders(file, logs,
 
     distr = data_distribution.Distribute(num_workers)
 
-    train_data_subsets, train_distribution = distr.perform_split(tr_data_dstr, train_data, size_split)
+    train_data_subsets, train_distribution = distr.perform_split(tr_data_dstr, train_data, size=size_split)
     test_data_subsets, test_distribution = distr.perform_split(test_data_distr, test_data)
 
     logs.plot_distribution(train_distribution, "train_distribution")
     logs.plot_distribution(test_distribution, "test_distribution")
+    logs.save_loaders(train_data_subsets, test_data_subsets)
 
     fed_dataset_train = _distribute_among_workers(train_data_subsets, workers)
     fed_dataset_test = _distribute_among_workers(test_data_subsets, workers)

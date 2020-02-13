@@ -6,7 +6,9 @@ import random
 import string
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import pickle
 
 import torch
 
@@ -122,6 +124,22 @@ class LogSaver:
             plt.savefig(self.folder + filename +".png")
             plt.clf()
         return True
+
+    def save_loaders(self, trainloader, testloader):
+
+        print("Saving loaders")
+        indx ={}
+        for i in trainloader:
+            indx[i] = trainloader[i].index
+        with open(self.folder +'trainloader.pkl', 'wb') as output:
+            pickle.dump(indx, output)
+
+        indx = {}
+        for i in testloader:
+            indx[i] = testloader[i].index
+        with open(self.folder +'testloader.pkl', 'wb') as output:
+            pickle.dump(indx, output)
+
 
     def save_model(self, net):
         print("Saving model weights ")
