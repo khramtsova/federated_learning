@@ -147,8 +147,8 @@ def main():
 
     inputDim = 72
     outputDim = 2
-    address_indx_train = args.logfolder + 'trainloader.pkl'
-    address_indx_test = args.logfolder + 'testloader.pkl'
+    address_indx_train = args.folder + 'trainloader.pkl'
+    address_indx_test = args.folder + 'testloader.pkl'
 
     dataset = pd.read_csv(args.data_folder, low_memory=False, na_values='NaN')
     with open(address_indx_train, 'rb') as output:
