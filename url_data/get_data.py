@@ -11,7 +11,8 @@ def get_dataloaders(file, logs,
                     test_data_distr,
                     num_workers=4,
                     train_batch_size=16,
-                    test_batch_size=16):
+                    test_batch_size=16,
+                    size_split=None):
 
     dataset = pd.read_csv(file, low_memory=False, squeeze=True)
 
@@ -30,7 +31,7 @@ def get_dataloaders(file, logs,
 
     distr = data_distribution.Distribute(num_workers)
 
-    train_data_subsets, train_distribution = distr.perform_split(tr_data_dstr, train_data)
+    train_data_subsets, train_distribution = distr.perform_split(tr_data_dstr, train_data, size_split)
     test_data_subsets, test_distribution = distr.perform_split(test_data_distr, test_data)
 
     logs.plot_distribution(train_distribution, "train_distribution")
@@ -65,9 +66,9 @@ def _train_validation_split(frame, percent):
     label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
     # amount = (label_count/4).astype(int)
     amount = (label_count * percent / 100).astype(int)
-    for key in amount.keys():
-        amount[key] = min(amount)
-    amount["benign"] = 1
+    #for key in amount.keys():
+    #    amount[key] = min(amount)
+    #amount["benign"] = 1
 
     # workers = dict.fromkeys([0,1,2,3], pd.DataFrame())
     # For each type of the attack

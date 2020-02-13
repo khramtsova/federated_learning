@@ -7,30 +7,30 @@ class Distribute:
         self.n_workers = num_agents
 
     # return - workers[1,2,3,4]:[Dataframe]
-    def perform_split(self, name, frame):
+    def perform_split(self, name, frame, size=None):
 
+        if size is None:
+            size = []
         workers = dict((i, pd.DataFrame()) for i in range(self.n_workers))
-        distribution = dict((i, pd.Series({"Defacement": 0,
-                                           "benign": 0,
-                                           "malware": 0,
-                                           "phishing": 0,
-                                           "spam": 0}))
-                            for i in range(self.n_workers))
+
         if name == "iid":
-            return self._split_iid(frame, workers, distribution)
+            return self._split_iid(frame, workers)
         else:
             if name == "by_attack":
-                return self._split_by_attack(frame, workers, distribution)
+                return self._split_by_attack(frame, workers)
             else:
                 if name == "same":
                     return self._split_identical(frame, workers)
                 else:
-                    raise ("Unknown image_data distribution", name)
+                    if name == "by_size":
+                        return self._split_by_size(frame, workers, size)
+                    else:
+                        raise ("Unknown image_data distribution", name)
 
     # 1. Dataset is separeted in iid
     # input - frame
     # return - workers[1,2,3,4]:[Dataframe]
-    def _split_iid(self, frame, workers, distribution):
+    def _split_iid(self, frame, workers):
 
         label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
         distribution = (label_count / self.n_workers).astype(int)
@@ -50,7 +50,7 @@ class Distribute:
     # 1. Dataset is separeted in iid
     # input - frame
     # return - workers[1,2,3,4]:[Dataframe]
-    def _split_iid_balanced(self, frame, workers, distribution):
+    def _split_iid_balanced(self, frame, workers):
 
         label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
         distribution = (label_count / self.n_workers).astype(int)
@@ -70,8 +70,14 @@ class Distribute:
     # 2. Dataset is split by attack, benign is heavily undersampled
     # input - frame
     # return - workers[1,2,3,4]:[Dataframe]
-    def _split_by_attack(self, frame, workers, distribution):
+    def _split_by_attack(self, frame, workers):
 
+        distribution = dict((i, pd.Series({"defacement": 0,
+                                           "benign": 0,
+                                           "malware": 0,
+                                           "phishing": 0,
+                                           "spam": 0}))
+                            for i in range(self.n_workers))
         label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
         amount = (label_count["benign"] / 4).astype(int)
 
@@ -100,6 +106,28 @@ class Distribute:
         for worker_id in range(self.n_workers):
              workers[worker_id] = copy.copy(frame)
         distribution = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
+        return workers, distribution
+
+    # 4. Split by size
+    # input - frame, workers, size []
+    # return - workers[1,2,3,4]:[frame(len==size[1]), frame(len==size[2]) ... ]
+    def _split_by_size(self, frame, workers, size):
+
+        distribution = dict((i, pd.Series({"defacement": 0,
+                                           "benign": 0,
+                                           "malware": 0,
+                                           "phishing": 0,
+                                           "spam": 0}))
+                            for i in range(self.n_workers))
+
+        assert len(size) == self.n_workers
+
+        for i,s in enumerate(size):
+            workers[i] = frame.sample(n=s)
+            label_count = workers[i].groupby("URL_Type_obf_Type")["Len_Query"].count()
+            for label in label_count.index:
+                distribution[i][label] = label_count[label]
+
         return workers, distribution
 
 
@@ -131,7 +159,6 @@ def split_iid(frame, n_workers, logs):
 # return - workers[1,2,3,4]:[Dataframe]
 def split_by_attack(frame, logs):
     label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
-    print("HERE",label_count)
     amount = (label_count["benign"] / 4).astype(int)
 
     benign = frame[frame["URL_Type_obf_Type"] == "benign"]
