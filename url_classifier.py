@@ -66,7 +66,10 @@ def main():
             trainloader = batches[worker]
 
             # Batch size is needed to calculate accuracy
-            w, loss, acc = train(worker, net, trainloader, loss_func, args.local_ep, args.train_bs, device=device)
+            w, loss, acc = train(worker, net, trainloader, loss_func, args.local_ep, args.train_bs,
+                                 device=device,
+                                 lr=args.lr,
+                                 optim=args.optimizer)
             # ToDo w -> w.state_dict()
             w_local[worker] = w  # .state_dict()
             #n.append(len(trainloader))

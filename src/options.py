@@ -26,6 +26,7 @@ def args_parser():
     parser.add_argument('--train_bs', type=int, default=32, help="local batch size")
     parser.add_argument('--test_bs', type=int, default=128, help="test batch size")
     parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
+    parser.add_argument('--optimizer', type=str, default="Adam", help="Adam / SGD")
     parser.add_argument('--momentum', type=float, default=0.9, help="SGD momentum (default: 0.5)")
 
     #Other arguments

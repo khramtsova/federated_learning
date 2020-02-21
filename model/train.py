@@ -1,16 +1,16 @@
 import torch
 
 
-def train(worker, net_in, loader, loss_func, local_ep, batch_size, optim="Adam",device="cpu"):
+def train(worker, net_in, loader, loss_func, local_ep, batch_size, optim="Adam", device="cpu", lr=0.001):
 
     net = net_in.copy()
 
     if optim == "Adam":
-        optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+        optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     else:
         if optim == "SGD":
             # ToDo add momentum
-            optimizer = optim.SGD(net.parameters(), lr=0.001)#, momentum=args.momentum)
+            optimizer = optim.SGD(net.parameters(), lr=lr)#, momentum=args.momentum)
         else:
             raise Exception("Unknown optimizer")
 
