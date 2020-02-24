@@ -10,7 +10,7 @@ def train(worker, net_in, loader, loss_func, local_ep, batch_size, optim="Adam",
     else:
         if optim == "SGD":
             # ToDo add momentum
-            optimizer = optim.SGD(net.parameters(), lr=lr)#, momentum=args.momentum)
+            optimizer = torch.optim.SGD(net.parameters(), lr=lr)#, momentum=args.momentum)
         else:
             raise Exception("Unknown optimizer")
 
