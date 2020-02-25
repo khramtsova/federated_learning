@@ -143,10 +143,12 @@ class LogSaver:
         with open(self.folder +'testloader.pkl', 'wb') as output:
             pickle.dump(indx, output)
 
-
-    def save_model(self, net):
+    def save_model(self, net, name=None):
         print("Saving model weights ")
-        adrs = self.folder + "model" + ".pth"
+        if name:
+            adrs = self.folder + name + ".pth"
+        else:
+            adrs = self.folder + "model" + ".pth"
         torch.save(net.state_dict(), adrs)
 
 
