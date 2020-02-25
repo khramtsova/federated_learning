@@ -20,7 +20,7 @@ from model.train import train, test
 # Take equal amount of all the features apart
 # All the workers have a same validation subset
 def train_validation_split(frame, percent):
-    label_count = frame.groupby("URL_Type_obf_Type")["Querylength"].count()
+    label_count = frame.groupby("URL_Type_obf_Type")["Len_Query"].count()
     # amount = (label_count/4).astype(int)
     amount = (label_count * percent / 100).astype(int)
     # workers = dict.fromkeys([0,1,2,3], pd.DataFrame())
