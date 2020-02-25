@@ -85,7 +85,7 @@ def main():
         device = torch.device("cpu")
 
     net = LinearModel(inputDim, outputDim)
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+    optimizer = torch.optim.SGD(net.parameters(), lr=0.01)
     loss_func = nn.CrossEntropyLoss()
 
 

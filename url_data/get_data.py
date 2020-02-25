@@ -38,13 +38,19 @@ def get_dataloaders(file, logs,
     logs.plot_distribution(test_distribution, "test_distribution")
     logs.save_loaders(train_data_subsets, test_data_subsets)
 
+    # Remember how many samples each worker have (needed for FedAvrg)
+    worker_sizes = []
+    for value in train_data_subsets.values():
+        worker_sizes.append(len(value))
+    assert len(worker_sizes) == len(workers)
+
     fed_dataset_train = _distribute_among_workers(train_data_subsets, workers)
     fed_dataset_test = _distribute_among_workers(test_data_subsets, workers)
 
     fed_loader_train = sy.FederatedDataLoader(fed_dataset_train, batch_size=train_batch_size, shuffle=True)
     fed_loader_test = sy.FederatedDataLoader(fed_dataset_test, batch_size=test_batch_size, shuffle=True)
 
-    return fed_loader_train, fed_loader_test, workers
+    return fed_loader_train, fed_loader_test, workers, worker_sizes
 
 
 #

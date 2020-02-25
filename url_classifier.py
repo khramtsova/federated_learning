@@ -5,13 +5,14 @@ import copy
 import numpy as np
 import torch
 import torch.nn as nn
-from syft.frameworks.torch.federated.utils import extract_batches_per_worker, federated_avg
+from syft.frameworks.torch.federated.utils import extract_batches_per_worker
 
 from src.log_saver import LogSaver
 from src.options import args_parser
 from url_data.get_data import get_dataloaders
 from model.model import LinearModel
 from model.train import train, test
+from model.aggregation import FedAvg
 
 
 def main():
@@ -22,12 +23,12 @@ def main():
     args = args_parser()
     logs = LogSaver(args)
 
-    fed_trainloaders, fed_testloaders, workers = get_dataloaders(args.data_folder,
-                                                                 logs,
-                                                                 args.dstr_Train,
-                                                                 args.dstr_Test,
-                                                                 args.num_workers,
-                                                                 args.train_bs, args.test_bs)
+    fed_trainloaders, fed_testloaders, workers, worker_sizes = get_dataloaders(args.data_folder,
+                                                                               logs,
+                                                                               args.dstr_Train,
+                                                                               args.dstr_Test,
+                                                                               args.num_workers,
+                                                                               args.train_bs, args.test_bs)
 
     if torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
@@ -70,14 +71,17 @@ def main():
                                  device=device,
                                  lr=args.lr,
                                  optim=args.optimizer)
-            # ToDo w -> w.state_dict()
-            w_local[worker] = w  # .state_dict()
-            #n.append(len(trainloader))
-            print(loss)
+
+            w_local[worker] = w.state_dict()
+
             loss_train.append(copy.deepcopy(loss))
             acc_train.append(copy.deepcopy(acc))
 
-        net = federated_avg(w_local)
+        w_glob = FedAvg(list(w_local.values()), worker_sizes)
+        # Analog to model distribution
+        net.load_state_dict(w_glob)
+
+        #net = federated_avg(w_local)
 
         # Perform tests after global update
         # If the test subset is the same for everyone - perform only one test
